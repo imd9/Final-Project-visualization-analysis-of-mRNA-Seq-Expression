@@ -149,17 +149,17 @@ server = function(input, output, session){
       return(counts)}
     else{return(NULL)} })
   ### Summary table:
-  count_sumry_tbl = function(counts_tibs, samp_percvarri, samp_nztib){
+  count_sumry_tbl = function(samp_counttibs, samp_percvarri, samp_nztib){
     if (!is.null(input$sample_counts_file)){
-      samp_totvals = ncol(counts_tibs)-1
-      samp_genestotls = nrow(counts_tibs)
-      counts_tibs = counts_tibs %>% mutate(variance = apply(counts_tibs[-1], MARGIN = 1, FUN = var))
-      sampperc_val = quantile(counts_tibs$variance, probs = samp_percvarri/100) 
-      counts_tibs = filter(counts_tibs, variance >= sampperc_val)  
-      counts_tibs = na_if(counts_tibs, 0)
-      counts_tibs$non_zero = samp_totvals-rowSums(is.na(counts_tibs))  
-      counts_tibs = filter(counts_tibs, non_zero >= samp_nztib)  
-      samp_filtrgns = nrow(counts_tibs)    
+      samp_totvals = ncol(samp_counttibs)-1
+      samp_genestotls = nrow(samp_counttibs)
+      samp_counttibs = samp_counttibs %>% mutate(variance = apply(samp_counttibs[-1], MARGIN = 1, FUN = var))
+      sampperc_val = quantile(samp_counttibs$variance, probs = samp_percvarri/100) 
+      samp_counttibs = filter(samp_counttibs, variance >= sampperc_val)  
+      samp_counttibs = na_if(samp_counttibs, 0)
+      samp_counttibs$non_zero = samp_totvals-rowSums(is.na(samp_counttibs))  
+      samp_counttibs = filter(samp_counttibs, non_zero >= samp_nztib)  
+      samp_filtrgns = nrow(samp_counttibs)    
       samp_pass_percgenes = samp_filtrgns/samp_genestotls*100
       sampfailgns = samp_genestotls-samp_filtrgns
       sampperc_failgns = sampfailgns/samp_genestotls*100
@@ -169,11 +169,11 @@ server = function(input, output, session){
       return( totsamp_sumrytbl)}
     else{return(NULL)} }
   #### MEDIAN AND VARIANCE:
-  samp_medvar = function(counts_tibs, samp_percvarri){
+  samp_medvar = function(samp_counttibs, samp_percvarri){
     if (!is.null(input$sample_counts_file)){
       ### TABLE DATA:
-      samp_graphtib = counts_tibs%>%
-        mutate(Median = apply(counts_tibs[-1], MARGIN = 1, FUN = median),Variance = apply(counts_tibs[-1], MARGIN = 1, FUN = var))
+      samp_graphtib = samp_counttibs%>%
+        mutate(Median = apply(samp_counttibs[-1], MARGIN = 1, FUN = median),Variance = apply(samp_counttibs[-1], MARGIN = 1, FUN = var))
       sampperc_val = quantile(samp_graphtib$Variance, probs = samp_percvarri/100) 
       samp_graphtib = samp_graphtib %>% mutate(threshold = case_when(Variance >= sampperc_val ~ "TRUE", TRUE ~ "FALSE"))
       ### plot_sampscatter PLOT:
@@ -183,12 +183,12 @@ server = function(input, output, session){
       return(plot_sampscatter)}
     else{return(NULL)} }
   ##### MEDIAN AND VARIANCE PLOT:
-  smp_medvsnz <- function(counts_tibs, samp_nztib){
+  smp_medvsnz <- function(samp_counttibs, samp_nztib){
     if (!is.null(input$sample_counts_file)){
-      samp_totvals = ncol(counts_tibs)-1  #store original number of samples and genes
+      samp_totvals = ncol(samp_counttibs)-1  #store original number of samples and genes
       #make a plot tibble
-      samp_graphtib = counts_tibs %>%   
-        mutate(Median = apply(counts_tibs[-1], MARGIN = 1, FUN = median)) %>% na_if(0)  #calc median, convert 0 to NA
+      samp_graphtib = samp_counttibs %>%   
+        mutate(Median = apply(samp_counttibs[-1], MARGIN = 1, FUN = median)) %>% na_if(0)  #calc median, convert 0 to NA
       samp_graphtib$no_zeros = rowSums(is.na(samp_graphtib))  #make new col, with counts.
       samp_graphtib = samp_graphtib %>% mutate(threshold = case_when(no_zeros <= samp_nztib ~ "TRUE", TRUE ~ "FALSE"))
       #plot plot_sampscatter plot
@@ -198,32 +198,32 @@ server = function(input, output, session){
       return(plot_sampscatter)}
     else{return(NULL)} }
   ### HEATMAP:
-  plot_heatmap = function(counts_tibs, samp_percvarri){
+  plot_heatmap = function(samp_counttibs, samp_percvarri){
     if (!is.null(input$sample_counts_file)){
-      counts_tibs = log10(counts_tibs[-1])
-      samp_graphtib = counts_tibs %>% 
-        mutate(variance = apply(counts_tibs, MARGIN = 1, FUN = var))
+      samp_counttibs = log10(samp_counttibs[-1])
+      samp_graphtib = samp_counttibs %>% 
+        mutate(variance = apply(samp_counttibs, MARGIN = 1, FUN = var))
       sampperc_val = quantile(samp_graphtib$variance, probs = samp_percvarri/100, na.rm = TRUE) 
       samp_graphtib = filter(samp_graphtib, variance >= sampperc_val)
       samp_heat_map = heatmap(as.matrix(samp_graphtib[-ncol(samp_graphtib)]), scale = "row")
       return(samp_heat_map)}
     else{return(NULL)} }
   #### PCA PLOTS:
-  plot_pca = function(counts_tibs, samp_percvarri, var_pca1, var_pca2){
+  graph_pcaplot = function(samp_counttibs, samp_percvarri, var_pca1, var_pca2){
     if (!is.null(input$sample_counts_file)){
-      filt_tib = counts_tibs %>% 
-        mutate(variance = apply(counts_tibs[-1], MARGIN = 1, FUN = var), .after = gene)
+      filt_tib = samp_counttibs %>% 
+        mutate(variance = apply(samp_counttibs[-1], MARGIN = 1, FUN = var), .after = gene)
       sampperc_val = quantile(filt_tib$variance, probs = samp_percvarri/100, na.rm = TRUE)   #calculate percentile
       filt_tib = filter(filt_tib, variance >= sampperc_val) #filter the tibble
-      pca_res = prcomp(t(filt_tib[-c(1,2)]), scale = FALSE) #transpose the data and perform PCA
-      variance = summary(pca_res)$importance[2,]
+      samppca_refdat = prcomp(t(filt_tib[-c(1,2)]), scale = FALSE) #transpose the data and perform PCA
+      variance = summary(samppca_refdat)$importance[2,]
       x = round(variance[var_pca1]*100, 2)
       y = round(variance[var_pca2]*100, 2)
       ### PRINTING PCA GRAPH:
-      samp_graphtib = tibble(PC1 = pca_res$x[,var_pca1], PC2=pca_res$x[,var_pca2])
-      pca = ggplot(samp_graphtib, aes(PC1, PC2))+geom_point(color="#138086")+labs(title="Princple Component Analysis Visualization:")+xlab(str_c(var_pca1, x,"% Variance",sep=" "))+
+      samp_graphtib = tibble(PC1 = samppca_refdat$x[,var_pca1], PC2=samppca_refdat$x[,var_pca2])
+      plotpca = ggplot(samp_graphtib, aes(PC1, PC2))+geom_point(color="#138086")+labs(title="Princple Component Analysis Visualization:")+xlab(str_c(var_pca1, x,"% Variance",sep=" "))+
                     ylab(str_c(var_pca2,y,"% Variance",sep=" "))+theme_classic()
-      return(pca)}
+      return(plotpca)}
     else{return(NULL)} }
   
   ####### COUNTS-OUT-PUT #####################
@@ -231,7 +231,7 @@ server = function(input, output, session){
   output$sample_median_varians = renderPlot({samp_medvar(load_counts(), input$percent_varians)})
   output$samp_median_zero = renderPlot({smp_medvsnz(load_counts(), input$sample_non_zero)})
   output$samp_heat_map = renderPlot({plot_heatmap(load_counts(), input$percent_varians)})
-  output$PCAplot = renderPlot({plot_pca(load_counts(), input$percent_varians, input$var_pca1, input$var_pca2)})
+  output$PCAplot = renderPlot({graph_pcaplot(load_counts(), input$percent_varians, input$var_pca1, input$var_pca2)})
   #_______________________________________________________________________________________________________________________________#
   ###### Differential Expression Analysis #####################################:
   load_de = reactive({
@@ -240,20 +240,20 @@ server = function(input, output, session){
       return(defp)}
     else{return(NULL)}  })
   ### SEETING UP VOLCANO PLOT FUNCTION:---------
-  volcano_plot = function(dataf, x_name, y_name, slider, color1, color2) {
+  graphvolcano_sampdat = function(dataf, x_name, y_name, slider, color1, color2) {
     if (!is.null(input$file1_de)){
       cols = c("FALSE" = color1, "TRUE" = color2)
       threshold = 10^slider
       plot_data = dataf %>%
         dplyr::mutate(threshold = case_when(padj <= threshold ~ "TRUE", TRUE ~ "FALSE"))
       ### VOLCANO PLOT: (JUST LIKE IN HW7)---
-      volc_plot=ggplot(plot_data,aes(x=!!sym(x_name),y=-log10(!!sym(y_name))))+geom_point(aes(color=threshold))+
+      grphvolcn_dat=ggplot(plot_data,aes(x=!!sym(x_name),y=-log10(!!sym(y_name))))+geom_point(aes(color=threshold))+
         labs(color=str_glue('{y_name} 1 x 10^ {slider}'))+scale_color_manual(values=cols)+theme_classic()+
         theme(plot.margin = margin(2, 2, 2, 2, "cm"),legend.position="bottom")
-      return(volc_plot)}
+      return(grphvolcn_dat)}
     else{return(NULL)} }
   ### HERE WE SET UP AN EXTRA FUNCTION TO SHOW US THE METADATA:
-  draw_table = function(dataf, slider) {
+  graph_dattable = function(dataf, slider) {
     if (!is.null(input$file1_de)){
       df = dataf %>% 
         dplyr::filter(padj <= 10^slider)
@@ -262,8 +262,8 @@ server = function(input, output, session){
     else{return(NULL)} }
   ################ DE-OUT-PUT#########################
   output$samp_sumr_dattable = DT::renderDataTable({load_de()})
-  output$volcano = renderPlot({volcano_plot(load_de(), input$xaxis, input$yaxis, input$samp_padjad, input$base_de_color, input$high_de_color)})
-  output$filtered_de_table = renderDataTable({draw_table(load_de(), input$samp_padjad)})
+  output$volcano = renderPlot({graphvolcano_sampdat(load_de(), input$xaxis, input$yaxis, input$samp_padjad, input$base_de_color, input$high_de_color)})
+  output$filtered_de_table = renderDataTable({graph_dattable(load_de(), input$samp_padjad)})
   #_______________________________________________________________________________________________________________________________#
   ###### G.S.E.A.- Gene Set Enrichment Analysis ###############################:
   gsea_meta = reactive({
@@ -277,10 +277,10 @@ server = function(input, output, session){
       return(counts)}
     else{return(NULL)} })
   #function to make distribution plots-
-  plot_distro = function(counts_tibs, samp_metdat_tb, meta_cat, selectgene){
+  graph_disntc = function(samp_counttibs, samp_metdat_tb, meta_cat, selectgene){
     if (!is.null(input$samp_gsea_data) & !is.null(input$samp_count_gsea)){
-      counts_tibs = column_to_rownames(counts_tibs, var = "gene")
-      gene_counts = as.numeric(as.vector(counts_tibs[selectgene,]))
+      samp_counttibs = column_to_rownames(samp_counttibs, var = "gene")
+      gene_counts = as.numeric(as.vector(samp_counttibs[selectgene,]))
       samp_graphtib = tibble(Gene_Counts = gene_counts, meta_value = pull(samp_metdat_tb, meta_cat))
       if (meta_cat == "Diagnosis"){
         plot = ggplot(samp_graphtib, aes(meta_value))+
@@ -292,7 +292,7 @@ server = function(input, output, session){
         return(plot) }}
     else{return(NULL)} }
   #######################G.S.E.A.-OUT-PUT#################################
-  output$distroplot=renderPlot({plot_distro(gsea_datcounts(), gsea_meta(), input$metachoice, input$gene)})
+  output$distroplot=renderPlot({graph_disntc(gsea_datcounts(), gsea_meta(), input$metachoice, input$gene)})
   #_______________________________________________________________________________________________________________________________#
   #### LAST BRACKET FOR SERVER:
 }
